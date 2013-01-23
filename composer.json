@@ -1,0 +1,24 @@
+{
+	"name": "opauth/smugmug",
+	"description": "SmugMug strategy for Opauth",
+	"keywords": ["authentication","auth","smugmug"],
+	"homepage": "http://opauth.org",
+	"license": "MIT",
+	"authors": [
+		{
+			"name": "John Mitchell (minioak)",
+			"email": "jfm@minioak.com",
+			"homepage": "http://www.minioak.com"
+		}
+	],
+	"require": {
+		"php": ">=5.3.0",
+		"opauth/opauth": ">=0.4.3",
+		"themattharris/tmhOAuth": ">=0.7.2"
+	},
+	"autoload": {
+		"psr-0": {
+			"": "."
+		}
+	}
+}
