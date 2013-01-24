@@ -18,7 +18,7 @@
  * @package			Opauth.SmugMug
  */
  
-class SmugMugStrategy extends OAuthStrategy{
+class SmugMugStrategy extends OpauthStrategy{
 
 /**
 	 * Compulsory configuration options
@@ -68,10 +68,9 @@ class SmugMugStrategy extends OAuthStrategy{
 	public function __construct($strategy, $env){
 		parent::__construct($strategy, $env);
 		
-		$this->strategy['consumer_key'] = $this->strategy['consumer_key'];
-		$this->strategy['consumer_secret'] = $this->strategy['consumer_secret'];
+		$this->strategy['consumer_key'] = $this->strategy['key'];
+		$this->strategy['consumer_secret'] = $this->strategy['secret'];
 		
-		require dirname(__FILE__).'/Vendor/tmhOAuth/tmhOAuth.php';
 		$this->tmhOAuth = new tmhOAuth($this->strategy);
 	}
 	
@@ -79,14 +78,10 @@ class SmugMugStrategy extends OAuthStrategy{
 	 * Auth request
 	 */
 	public function request(){
-		$params = array(
-			'oauth_callback' => $this->strategy['oauth_callback']
-		);
-
-		$results =  $this->_request('POST', $this->strategy['request_token_url'], $params);
+		$results =  $this->_request('POST', $this->strategy['request_token_url']);
 		
 		if ($results !== false && !empty($results['oauth_token']) && !empty($results['oauth_token_secret'])){
-			session_start();
+			//session_start();
 			$_SESSION['_opauth_oauth'] = $results;
 			$this->_authorize($results['oauth_token']);
 		}
@@ -104,26 +99,41 @@ class SmugMugStrategy extends OAuthStrategy{
 	/**
 	 * Receives oauth_verifier, requests for access_token and redirect to callback
 	 */
-	public function oauth_callback(){
-		session_start();
-		$session = $_SESSION['_opauth_smugmug'];
-		unset($_SESSION['_opauth_smugmug']);
-		
-		$this->tmhOAuth->config['user_token'] = $session['oauth_token'];
-		$this->tmhOAuth->config['user_secret'] = $session['oauth_token_secret'];
+	public function oauth_callback() {
+		//session_start();
+		$session = $_SESSION['_opauth_oauth'];
+		unset($_SESSION['_opauth_oauth']);
 
-		$results =  $this->_request('POST', $this->strategy['access_token_url']);
-		
-		$this->auth = array(
-			'provider' => 'SmugMug',
-			'uid' => null,
-			'credentials' => array(
-				'token' => $results['oauth_token'],
-				'secret' => $results['oauth_token_secret']
-			),
-		);
-		
-		$this->callback();
+		if ($_REQUEST['oauth_token'] == $session['oauth_token']) {
+			$this->tmhOAuth->config['user_token'] = $session['oauth_token'];
+			$this->tmhOAuth->config['user_secret'] = $session['oauth_token_secret'];
+
+			$params = array();
+
+			$results = $this->_request('POST', $this->strategy['access_token_url'], $params);
+
+			if ($results !== false && !empty($results['oauth_token']) && !empty($results['oauth_token_secret'])) {
+				$this->auth = array(
+					'provider'	=> 'SmugMug',
+					'uid'		=> null,
+					'credentials'	=> array(
+						'token'		=> $results['oauth_token'],
+						'secret'	=> $results['oauth_token_secret'],
+					)
+
+				);
+				
+				$this->callback();
+			} else {
+				$error = array(
+					'code'		=> 'access_denied',
+					'message'	=> 'User denied access.',
+					'raw'		=> $_GET
+				);
+
+				$this->errorCallback($error);
+			}
+		}
 	}
 	
 	/**
